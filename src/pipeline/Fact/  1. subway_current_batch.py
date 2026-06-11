@@ -1,3 +1,12 @@
+"""
+서울시 지하철 이용객 데이터 수집 배치 스크립트
+
+- 기능: 년월 데이터(YYYYMM)를 인자값으로 받아 서울 열린데이터 광장 API로부터 데이터를 가져옵니다.
+- DB 연동: 수집 및 정제된 데이터는 [sql/ods/get_TT_seoul_subway_monthly] 테이블과 연결되어 적재됩니다.
+- 작성일: 2026년 6월 11일
+- 작성자: 홍태경
+"""
+
 %pip install polars requests pandas sqlalchemy psycopg2-binary psycopg psycopg-binary 
 
 import requests
@@ -6,9 +15,6 @@ import psycopg
 import time
 from datetime import datetime
 import logging
-
-# 1. 2026년  실무 규격 로깅(Logging) 세팅
-# 로그 출력 형태: [시간] [로그레벨] 메시지 형태로 콘솔에 찍히도록 설정합니다.
 
 logging.basicConfig(
     level=logging.INFO,
@@ -21,7 +27,7 @@ API_KEY = "7656714c4567757336356769446c6b"      # KEY: 고유 인증키
 REQ_TYPE = "json"                             # TYPE: xml 대신 json 파일 형식
 SERVICE_NAME = "CardSubwayTime"               # SERVICE: 시간대별 지하철역 승객 현황 조회 식별자
 START_INDEX = 1                               # START_INDEX: 페이징 시작 행 번호
-END_INDEX = 5                                 # END_INDEX: 페이징 종료 행 번호 (우선 맛보기로 5줄만!)
+END_INDEX = 5                                 # END_INDEX: 페이징 종료 행 번호 (우선 맛보기로 5행만!)
 TARGET_MONTH = "202511"                       # USE_MM: 조회하고자 하는 사용월 (YYYYMM)
 ROUTE_LINE = ""                               # SBWY_ROUT_LN_NM: 호선명 (예: "1호선")
 STATION_NAME = ""                             # STTN: 지하철역명 (예: "서울역")
@@ -46,32 +52,21 @@ try:
         res_json = response.json()
         total = res_json.get("CardSubwayTime")
         res_rows = total.get("row")
-        time.sleep(0.1)
-        
 
-        logging.info("응답 데이터 (JSON):")
         logging.info(res_rows)
     else:
         logging.error(f"API 요청에 실패했습니다. 상태 코드: {response.status_code}")
 except Exception as e:
-    logging.error(f"💥 파이프라인 통신 중 치명적 에러 발생: {e}")
+    logging.error(f" 파이프라인 통신 중 치명적 에러 발생: {e}")
 
 df_subway = pl.DataFrame(res_rows)
 print(df_subway)
-
-df_staging = df_subway.unique()
-print(df_staging)
-
 
 target_duplicates = df_subway.filter(
     pl.struct(["USE_MM", "SBWY_ROUT_LN_NM", "STTN"]).is_duplicated()
 )
 print(target_duplicates)
 print(df_subway.glimpse())
-
-
-
-import polars as pl
 
 df_clean = df_subway.select([
     # -------------------------------------------------------------------------
@@ -82,7 +77,6 @@ df_clean = df_subway.select([
     pl.col("STTN").cast(pl.String).alias("sttn"),
     # -------------------------------------------------------------------------
     # 2. 🔢 [NUMERIC 타입 존] -> pl.Float64로 형변환 (Postgres의 NUMERIC/DOUBLE PRECISION 매핑)
-    # (원천 데이터 f64 타입을 유지하되, 혹시 모를 문자열 혼입을 막기 위해 확실하게 캐스팅하네!)
     # -------------------------------------------------------------------------
     pl.col("HR_4_GET_ON_NOPE").cast(pl.Float64).alias("hr_4_get_on_nope"),
     pl.col("HR_4_GET_OFF_NOPE").cast(pl.Float64).alias("hr_4_get_off_nope"),
@@ -124,7 +118,6 @@ df_clean = df_subway.select([
     pl.col("HR_22_GET_OFF_NOPE").cast(pl.Float64).alias("hr_22_get_off_nope"),
     pl.col("HR_23_GET_ON_NOPE").cast(pl.Float64).alias("hr_23_get_on_nope"),
     pl.col("HR_23_GET_OFF_NOPE").cast(pl.Float64).alias("hr_23_get_off_nope"), 
-    # 💡 자네 로그에서 색출한 00시 ~ 03시 진짜 이름표들!
     pl.col("HR_0_GET_ON_NOPE").cast(pl.Float64).alias("hr_0_get_on_nope"),
     pl.col("HR_0_GET_OFF_NOPE").cast(pl.Float64).alias("hr_0_get_off_nope"),
     pl.col("HR_1_GET_ON_NOPE").cast(pl.Float64).alias("hr_1_get_on_nope"),
@@ -136,23 +129,11 @@ df_clean = df_subway.select([
     
     # -------------------------------------------------------------------------
     # 3. 📅 [DATE 타입 존] -> '20251203' 글자를 진짜 날짜 객체로 변환!
-    # (자네 템플릿의 strptime 기믹을 활용해 Postgres의 DATE 규격과 100% 동기화하네!)
     # -------------------------------------------------------------------------
     pl.col("JOB_YMD").str.strptime(pl.Date, format="%Y%m%d").alias("job_ymd")
 ])
 
-print("✨ [디버깅 & 타입 개조 완료] 원천 스키마가 Postgres 맞춤형(String, Float64, Date)으로 대변신했습니다!")
-with pl.Config(tbl_cols=-1):
-    print(df_clean.head(5))
-
-
-
-
-
-# 실무 규격 로깅 설정
-logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')
-
-# DB 접속 정보
+# Postgres DB 접속 정보
 DB_USER = "krx"
 DB_PASSWORD = "krx" 
 DB_HOST = "192.168.56.10"
@@ -160,14 +141,6 @@ DB_PORT = "5432"
 DB_NAME = "bdp_test"
 conn_info = f"host={DB_HOST} port={DB_PORT} dbname={DB_NAME} user={DB_USER} password={DB_PASSWORD}"
 
-# 💡 [삭제 후 삽입 스위치] 테스트하고 싶다면 아래 주석을 해제하게나!
-# start_date = "202511"
-# end_date = "202511"
-
-
-# ====================================================================
-# 1️⃣ [홍 대리 요청] 53개 최종 컬럼 명단 기차 연결 및 콤마 문자열 조립
-# ====================================================================
 time_cols = []
 for i in range(24):
     time_cols.append(f"hr_{i}_get_on_nope")
@@ -176,13 +149,24 @@ for i in range(24):
 # 맨 뒤에 'last_updated' 기차 칸을 명시적으로 결합(Concat)합니다!
 final_col_list = ["use_mm", "sbwy_rout_ln_nm", "sttn"] + time_cols + ["job_ymd", "last_updated"]
 
+"""
+[
+    "use_mm", "sbwy_rout_ln_nm", "sttn",           # 앞부분 (3개)
+    "hr_0_get_on_nope", "hr_0_get_off_nope",       # 0시 승하차
+    "hr_1_get_on_nope", "hr_1_get_off_nope",       # 1시 승하차
+    "hr_2_get_on_nope", "hr_2_get_off_nope",       # 2시 승하차
+    # ... (중간 생략) ...
+    "hr_22_get_on_nope", "hr_22_get_off_nope",     # 22시 승하차
+    "hr_23_get_on_nope", "hr_23_get_off_nope",     # 23시 승하차
+    "job_ymd", "last_updated"                      # 뒷부분 (2개)
+]
+"""
+
 # 리스트 안의 53개 단어들을 콤마(, )로 엮어서 하나의 긴 문장으로 빌드!
 columns_str = ", ".join(final_col_list)
 
+# "use_mm, sbwy_rout_ln_nm, sttn, hr_0_get_on_nope, hr_0_get_off_nope, hr_1_get_on_nope, hr_1_get_off_nope, hr_2_get_on_nope, hr_2_get_off_nope, ... (중간 생략) ..., hr_22_get_on_nope, hr_22_get_off_nope, hr_23_get_on_nope, hr_23_get_off_nope, job_ymd, last_updated"
 
-# ====================================================================
-# 2️⃣ [홍 대리 요청] Polars 프레임에 실시간 현재 시간 감사 데이터 주입
-# ====================================================================
 # 원천 API가 주지 않는 'last_updated' 컬럼을 실시간으로 생성하여 병합합니다.
 df_final_audit = df_clean.with_columns(
     pl.lit(datetime.now()).alias("last_updated")
@@ -195,39 +179,33 @@ df_final_audit = df_clean.with_columns(
 try:
     logging.info("🔗 PostgreSQL 서버에 초고속 벌크 연결을 수립합니다.")
     
+    # 1. DB 연결 (with절을 나가면 자동 커밋 & 자동 닫기)
     with psycopg.connect(conn_info) as conn:
+        # 2. 일꾼(커서) 생성
         with conn.cursor() as cur:
-            
-            # 날짜 변수(start_date, end_date) 존재 여부 자동 감지 분기
-            try:
-                v_start = start_date
-                v_end = end_date
                 
-                print(f"🧹 [{v_start} ~ {v_end}] 기간의 기존 데이터를 청소합니다...")
-                sql_delete = f"""
-                    DELETE FROM ods.TT_seoul_subway_stats_monthly 
-                    WHERE use_mm BETWEEN '{v_start}' AND '{v_end}'
-                """
-                cur.execute(sql_delete)
-                logging.info(f"🗑️ [청소 완료] 총 {cur.rowcount}개의 행이 테이블에서 사전 제거되었습니다.")
-                
-            except NameError:
-                # 변수가 없으면 청소 단계 스킵하고 무식하게 대량 적재 모드로 직진!
+            # 💡 [교정] try-except 대신 변수가 진짜 존재하는지 안전하게 검사!
+            if 'TARGET_MONTH' in locals() and TARGET_MONTH:
+                logging.info(f"[청소 단계] 기존에 존재하는 {TARGET_MONTH}년월 데이터를 청소합니다.")
+                cur.execute(
+                    "DELETE FROM ods.TT_seoul_subway_stats_monthly WHERE use_mm = %s", 
+                    (TARGET_MONTH,)
+                )
+            else:
+                # 위에서 TARGET_MONTH가 선언되지 않았다면 안전하게 이쪽으로 빠집니다.
                 logging.info("ℹ️ [스킵] 날짜 변수가 지정되지 않아 기존 데이터 청소 없이 즉시 주입을 시작합니다.")
 
-            # ⚡ Psycopg3 COPY 벌크 엔진 기동
-            logging.info(f"📥 감사 컬럼이 포함된 새 데이터 {len(df_final_audit)}건을 테이블에 주입합니다...")
+            # Psycopg3 COPY 벌크 엔진 기동
+            logging.info(f"감사 컬럼이 포함된 새 데이터 {len(df_final_audit)}건을 테이블에 주입합니다...")
             sql_copy = f"COPY ods.TT_seoul_subway_stats_monthly ({columns_str}) FROM STDIN"
             
-            with cur.copy(sql_copy) as copy:
-                for row in df_final_audit.iter_rows():
-                    copy.write_row(row)
-                    
-            conn.commit()
-            
-    logging.info(f"🎉 [작업 성공] 총 {len(df_final_audit)}건의 데이터가 last_updated 타임스탬프와 함께 완전 무결하게 적재되었습니다!")
+            with cur.copy(sql_copy) as copy:               # 1. 파이썬과 DB 사이에 고속 빨대(통로)를 꽂습니다.
+                for row in df_final_audit.iter_rows():     # 2. Polars에서 데이터를 한 줄(Row)씩 꺼냅니다.
+                    copy.write_row(row)                    # 3. 꺼낸 데이터를 그 빨대(STDIN 통로) 속으로 슉슉 던집니다.
+    logging.info(f"🎉 [작업 성공] 총 {len(df_final_audit)}건의 데이터가 완전 무결하게 적재되었습니다!")
 
 except Exception as e:
+    # DB 연결 실패, COPY 에러 등 모든 예외는 이 대왕 except가 싹 잡아내어 안전하게 처리합니다.
     logging.error(f"❌ 데이터베이스 적재 중 치명적 장애 발생: {e}")
 
 
