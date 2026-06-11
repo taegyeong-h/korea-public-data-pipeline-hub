@@ -1,6 +1,12 @@
 
 
+# 002_subway_monthly_range.py (기간 반복 실행기)
+# 인자값: 두 개 (START_MONTH = "202301", END_MONTH = "202605")
 
+# 역할: 시작월부터 종료월까지의 목록을 만들고, for문을 돌면서 TARGET_MONTH를 바꿔가며 데이터를 누적(Append) 적재합니다.
+
+# 활용도:
+# 초기 역사(History) 적재용: 프로젝트 오픈 전 과거 수년 치 데이터를 전월까지 한 번에 싹 밀어 넣을 때 수동으로 실행합니다.
 
 
 # 002_subway_monthly_history.py (월별 이력 수동 적재)
@@ -48,4 +54,31 @@ logging.info(f"🤖 정기 자동 배치 가동 - 대상 월: {TARGET_MONTH}")
 # 2. 이 TARGET_MONTH 하나를 가지고 루프 없이 딱 한 번만 실행!
 # 기존에 완성하신 청소(DELETE) 후 초고속 주입(COPY) 로직이 그대로 한 번 실행됩니다.
 
+
+
+# 002_subway_monthly_range.py 구조 예시
+import polars as pl
+from datetime import datetime
+import logging
+
+# [인터페이스] 시작월과 종료월 2개를 지정
+START_MONTH = "202301"
+END_MONTH = "202605"
+
+# Polars로 범위 내의 YYYYMM 리스트 자동 생성
+target_months = pl.date_range(
+    start=datetime.strptime(START_MONTH, "%Y%m"),
+    end=datetime.strptime(END_MONTH, "%Y%m"),
+    interval="1mo"
+).dt.strftime("%Y%m").to_list()
+
+logging.info(f"⏳ {START_MONTH}부터 {END_MONTH}까지 총 {len(target_months)}개월간 반복 처리를 시작합니다.")
+
+# target_month에 하나씩 할당해가며 loop 작동!
+for TARGET_MONTH in target_months:
+    logging.info(f"🔄 현재 처리 중인 월: {TARGET_MONTH}")
+    
+    # 1. 해당 월 기존 데이터 DELETE
+    # 2. 해당 월 API 호출 및 정제
+    # 3. PostgreSQL COPY 벌크 주입 (기존 테이블에 행이 계속 append(추가)됨)
 
