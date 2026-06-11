@@ -1,48 +1,5 @@
 %pip install polars requests pandas sqlalchemy psycopg2-binary psycopg psycopg-binary 
 
-Postgres 테이블 
-#
-CREATE SCHEMA IF NOT EXISTS ods;
-
-
-CREATE TABLE ods.seoul_subway_time_stats (
-    use_mm          VARCHAR(6) NOT NULL,
-    sbwy_rout_ln_nm VARCHAR(50) NOT NULL,
-    sttn            VARCHAR(100) NOT NULL,
-    -- 00시부터 23시까지 승하차 NUMERIC(정수형 매핑용) 컬럼 48개 대정렬
-    hr_0_get_on_nope   NUMERIC, hr_0_get_off_nope  NUMERIC,
-    hr_1_get_on_nope   NUMERIC, hr_1_get_off_nope  NUMERIC,
-    hr_2_get_on_nope   NUMERIC, hr_2_get_off_nope  NUMERIC,
-    hr_3_get_on_nope   NUMERIC, hr_3_get_off_nope  NUMERIC,
-    hr_4_get_on_nope   NUMERIC, hr_4_get_off_nope  NUMERIC,
-    hr_5_get_on_nope   NUMERIC, hr_5_get_off_nope  NUMERIC,
-    hr_6_get_on_nope   NUMERIC, hr_6_get_off_nope  NUMERIC,
-    hr_7_get_on_nope   NUMERIC, hr_7_get_off_nope  NUMERIC,
-    hr_8_get_on_nope   NUMERIC, hr_8_get_off_nope  NUMERIC,
-    hr_9_get_on_nope   NUMERIC, hr_9_get_off_nope  NUMERIC,
-    hr_10_get_on_nope  NUMERIC, hr_10_get_off_nope NUMERIC,
-    hr_11_get_on_nope  NUMERIC, hr_11_get_off_nope NUMERIC,
-    hr_12_get_on_nope  NUMERIC, hr_12_get_off_nope NUMERIC,
-    hr_13_get_on_nope  NUMERIC, hr_13_get_off_nope NUMERIC,
-    hr_14_get_on_nope  NUMERIC, hr_14_get_off_nope NUMERIC,
-    hr_15_get_on_nope  NUMERIC, hr_15_get_off_nope NUMERIC,
-    hr_16_get_on_nope  NUMERIC, hr_16_get_off_nope NUMERIC,
-    hr_17_get_on_nope  NUMERIC, hr_17_get_off_nope NUMERIC,
-    hr_18_get_on_nope  NUMERIC, hr_18_get_off_nope NUMERIC,
-    hr_19_get_on_nope  NUMERIC, hr_19_get_off_nope NUMERIC,
-    hr_20_get_on_nope  NUMERIC, hr_20_get_off_nope NUMERIC,
-    hr_21_get_on_nope  NUMERIC, hr_21_get_off_nope NUMERIC,
-    hr_22_get_on_nope  NUMERIC, hr_22_get_off_nope NUMERIC,
-    hr_23_get_on_nope  NUMERIC, hr_23_get_off_nope NUMERIC,
-    job_ymd         DATE,
-    last_updated    TIMESTAMP NOT NULL,
-    -- 🛑 [홍 대리 시그니처] 데이터 원천 보호용 복합 기본키 박제!
-    PRIMARY KEY (use_mm, sbwy_rout_ln_nm, sttn)
-);
-#
-
-
-
 import requests
 import polars as pl
 import psycopg
@@ -248,7 +205,7 @@ try:
                 
                 print(f"🧹 [{v_start} ~ {v_end}] 기간의 기존 데이터를 청소합니다...")
                 sql_delete = f"""
-                    DELETE FROM ods.seoul_subway_time_stats 
+                    DELETE FROM ods.TT_seoul_subway_stats_monthly 
                     WHERE use_mm BETWEEN '{v_start}' AND '{v_end}'
                 """
                 cur.execute(sql_delete)
@@ -260,7 +217,7 @@ try:
 
             # ⚡ Psycopg3 COPY 벌크 엔진 기동
             logging.info(f"📥 감사 컬럼이 포함된 새 데이터 {len(df_final_audit)}건을 테이블에 주입합니다...")
-            sql_copy = f"COPY ods.seoul_subway_time_stats ({columns_str}) FROM STDIN"
+            sql_copy = f"COPY ods.TT_seoul_subway_stats_monthly ({columns_str}) FROM STDIN"
             
             with cur.copy(sql_copy) as copy:
                 for row in df_final_audit.iter_rows():
