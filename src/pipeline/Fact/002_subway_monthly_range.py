@@ -82,3 +82,9 @@ for TARGET_MONTH in target_months:
     # 2. 해당 월 API 호출 및 정제
     # 3. PostgreSQL COPY 벌크 주입 (기존 테이블에 행이 계속 append(추가)됨)
 
+
+
+
+이번 달: [지하철 이용객수 Fact] + [역 위치 Master] + [호선 정보 Master] ➡️ 지하철 Mart (Airflow DAG 003번)
+
+다음 달: [시내버스 이용객수 Fact] + [정류장 위치 Master] + [버스 노선 Master] ➡️ 버스 Mart (Airflow DAG 004번)
