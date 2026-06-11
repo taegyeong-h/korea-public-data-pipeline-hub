@@ -195,9 +195,12 @@ try:
                 # 위에서 TARGET_MONTH가 선언되지 않았다면 안전하게 이쪽으로 빠집니다.
                 logging.info("ℹ️ [스킵] 날짜 변수가 지정되지 않아 기존 데이터 청소 없이 즉시 주입을 시작합니다.")
 
+            # 현재 데이터가 Postgres 서버 하드디스크가 아닌 Polars 데이터프레임에 있으니
+            # FROM STDIN은 "네 컴퓨터에 있는 파일 읽지 말고, 지금부터 나(파이썬)가 네트워크 파이프라인을 통해 입으로 직접 쏴주는 데이터 스트림을 그대로 받아먹어라!" 라고 지시하는 것입니다.
+            
             # Psycopg3 COPY 벌크 엔진 기동
             logging.info(f"감사 컬럼이 포함된 새 데이터 {len(df_final_audit)}건을 테이블에 주입합니다...")
-            sql_copy = f"COPY ods.TT_seoul_subway_stats_monthly ({columns_str}) FROM STDIN"
+            sql_copy = f"COPY ods.TT_seoul_subway_stats_monthly ({columns_str}) FROM STDIN"  
             
             with cur.copy(sql_copy) as copy:               # 1. 파이썬과 DB 사이에 고속 빨대(통로)를 꽂습니다.
                 for row in df_final_audit.iter_rows():     # 2. Polars에서 데이터를 한 줄(Row)씩 꺼냅니다.
