@@ -7,7 +7,7 @@
 - 작성자: 홍태경
 """
 
-%pip install polars requests pandas sqlalchemy psycopg2-binary psycopg psycopg-binary 
+pip install polars requests sqlalchemy psycopg2-binary psycopg psycopg-binary 
 
 import requests
 import polars as pl
