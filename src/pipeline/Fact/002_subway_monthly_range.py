@@ -1,10 +1,13 @@
-# 002_subway_monthly_range.py (기간 반복 실행기)
-# 인자값: 두 개 (START_MONTH = "202501", END_MONTH = "202512")
+"""
+서울시 지하철 이용객 데이터 수집 배치 스크립트
 
-# 역할: 시작월부터 종료월까지의 목록을 만들고, for문을 돌면서 TARGET_MONTH를 바꿔가며 데이터를 누적(Append) 적재합니다.
+- 기능: 년월 데이터(YYYYMM) 하나의 인자값을 받아 서울 열린데이터 광장 API로부터 데이터를 가져옵니다.
+-  인자값: 두 개 (START_MONTH, END_MONTH)
+- DB 연동: 수집 및 정제된 데이터는 [sql/ods/get_TT_seoul_subway_monthly] 테이블과 연결되어 COPY 명령어를 이용하여 데이터를 적재합니다 
+- 작성일: 2026년 6월 11일
+- 작성자: 홍태경
+"""
 
-# 활용도:
-# 초기 역사(History) 적재용: 프로젝트 오픈 전 과거 수년 치 데이터를 전월까지 한 번에 싹 밀어 넣을 때 수동으로 실행합니다.
 
 import requests
 import polars as pl
@@ -76,9 +79,6 @@ for target_month in month_list:
             res_json = response.json()
             total = res_json.get("CardSubwayTime")
             all_rows.extend(total.get("row"))
-
-
-            logging.info(res_rows)
         else:
             logging.error(f"API 요청에 실패했습니다. 상태 코드: {response.status_code}")
     except Exception as e:
@@ -263,6 +263,6 @@ except Exception as e:
 
 
 
-이번 달: [지하철 이용객수 Fact] + [역 위치 Master] + [호선 정보 Master] ➡️ 지하철 Mart (Airflow DAG 003번)
+# 이번 달: [지하철 이용객수 Fact] + [역 위치 Master] + [호선 정보 Master] ➡️ 지하철 Mart (Airflow DAG 003번)
 
-다음 달: [시내버스 이용객수 Fact] + [정류장 위치 Master] + [버스 노선 Master] ➡️ 버스 Mart (Airflow DAG 004번)
+# 다음 달: [시내버스 이용객수 Fact] + [정류장 위치 Master] + [버스 노선 Master] ➡️ 버스 Mart (Airflow DAG 004번)
