@@ -55,8 +55,6 @@ try:
         res_json = response.json()
         total = res_json.get("CardSubwayTime")
         res_rows = total.get("row")
-
-        logging.info(res_rows)
     else:
         logging.error(f"API 요청에 실패했습니다. 상태 코드: {response.status_code}")
 except Exception as e:
