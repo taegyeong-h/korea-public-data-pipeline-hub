@@ -7,8 +7,11 @@
 - 작성자: 홍태경
 """
 
+터미널에서 사용할 패키지 다운로드
+"""
+python.exe -m pip install --upgrade pip
 pip install polars requests sqlalchemy psycopg2-binary psycopg psycopg-binary 
-
+"""
 import requests
 import polars as pl
 import psycopg
@@ -23,7 +26,7 @@ logging.basicConfig(
 )
 
 # 1. 필수 인자 (정식 명세서의 필수 항목들)
-API_KEY = "7656714c4567757336356769446c6b"      # KEY: 고유 인증키
+API_KEY = "7656714c4567757336356769446c6b"    # KEY: 고유 인증키
 REQ_TYPE = "json"                             # TYPE: json 파일 형식
 SERVICE_NAME = "CardSubwayTime"               # SERVICE: 시간대별 지하철역 승객 현황 조회 식별자
 START_INDEX = 1                               # START_INDEX: 페이징 시작 행 번호
