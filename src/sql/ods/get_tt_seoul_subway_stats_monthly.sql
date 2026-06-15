@@ -1,5 +1,5 @@
 
--- CREATE TABLE ods.TT_seoul_subway_stats_monthly (
+-- CREATE TABLE ods.tt_seoul_subway_stats_monthly (
 --     use_mm          VARCHAR(6) NOT NULL,
 --     sbwy_rout_ln_nm VARCHAR(50) NOT NULL,
 --     sttn            VARCHAR(100) NOT NULL,
