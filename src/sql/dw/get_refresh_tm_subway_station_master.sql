@@ -15,3 +15,43 @@
 -- COMMENT ON COLUMN ods.tm_subway_station_master.station_cd IS '역사 고유 코드';
 -- COMMENT ON COLUMN ods.tm_subway_station_master.station_nm IS '역사명';
 -- COMMENT ON COLUMN ods.tm_subway_station_master.route_ln_nm IS '지하철 호선명';
+
+MERGE INTO dw.tm_subway_station_master AS TARGET 
+USING ods.tm_subway_station_master AS SOURCE
+ON TARGET.station_cd = SOURCE.station_cd
+    
+WHEN MATCHED THEN
+    UPDATE SET
+          station_nm      = SOURCE.station_nm
+        , route_ln_nm     = SOURCE.route_ln_nm     
+        , latitude        = SOURCE.latitude
+        , longitude       = SOURCE.longitude    
+        , updated_at      =  CURRENT_TIMESTAMP
+        , is_deleted      = 'N'
+
+WHEN NOT MATCHED THEN
+    INSERT (
+          station_cd   
+        , station_nm
+        , route_ln_nm     
+        , latitude
+        , longitude    
+        , created_at
+        , updated_at
+        , is_deleted 
+    )
+    VALUES (
+          SOURCE.station_cd   
+        , SOURCE.station_nm
+        , SOURCE.route_ln_nm     
+        , SOURCE.latitude
+        , SOURCE.longitude 
+        , CURRENT_TIMESTAMP
+        , CURRENT_TIMESTAMP
+        , 'N'
+    ) 
+    
+WHEN NOT MATCHED BY SOURCE THEN
+    UPDATE SET
+          is_deleted   = 'Y'               
+        , updated_at = CURRENT_TIMESTAMP; 
