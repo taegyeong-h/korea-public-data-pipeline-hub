@@ -1,4 +1,4 @@
-CREATE TABLE ods.tm_seoul_subway_elevator_master (
+CREATE TABLE ods.get_tm_seoul_subway_elevator_master (
     node_id                      VARCHAR(50) PRIMARY KEY, -- 엘리베이터 고유 코드
     -- ② 원천 컬럼 풀네임 매핑 10개 (가독성 100%)
     node_link_type               VARCHAR(50),             -- 노드링크 유형
