@@ -1,3 +1,39 @@
+# 🌐 대한민국 공공데이터 엔지니어링 파이프라인 허브
+
+> **본 저장소는 대한민국 공공 API를 활용하여, 데이터 레이크(GCS) 적재부터 데이터 웨어하우스(BigQuery) 다차원 모델링까지 엔드투엔드(E2E)로 구축한 전사적 데이터 플랫폼 허브입니다.**
+
+---
+
+## 🛠️ 1. 공통 기술 스택 & 인프라 (Tech Stack)
+* **Language**: Python 3.14+
+* **Orchestrator**: Apache Airflow 3.2 (LocalExecutor, StandAlone)
+* **Database**: PostgreSQL 18 (OLAP & Raw Data 저장소) / Ubuntu 26.04
+* **Environment**: Windows 10 & Linux VM
+
+---
+
+## 📊 2. 가동 중인 데이터 파이프라인 카탈로그 (Data Catalog)
+*새로운 프로젝트가 추가될 때마다 아래 인덱스 테이블에 딱 '한 줄'만 추가하여 확장성을 통제합니다.*
+
+| 번호 | 도메인 명칭 | 핵심 기술 스택 | 데이터 모델링 특징 | 프로젝트 상세 보기 |
+| :--- | :--- | :--- | :--- | :--- |
+| **01** | 🚇 서울 지하철 교통약자 인프라 과부하 지수 | Python, Airflow, Postgres, SQL | Fact(실적)와 Dimension(차원) 분리 및 다중 CTE 기반 중복 제어 | [👉 지하철 정의서 보기](./01_seoul_subway_elevator/) |
+| **02** | 🌬️ 전국 대기질(미세먼지) 행정구역별 오염도 | Python, Airflow, Postgres, SQL | 측정소 마스터(Dim)와 일별 실적(Fact)의 스타 스키마 조인 | [👉 대기질 정의서 보기](./02_nationwide_air_quality/) |
+
+---
+
+## 📈 3. 핵심 데이터 엔지니어링 운영 원칙
+* **Fact & Dimension 분리**: 엔지니어링 최적화를 위해 매일 쌓이는 실적(Fact) 데이터와 자주 변하지 않는 기준(Dimension) 데이터를 이원화하여 시스템 부하 최소화.
+* **비용 인지형 쿼리 설계**: 컬럼 기반 스토리지 특성을 이해하고, 스캔 비용을 최적화하는 아키텍처 수립.
+
+
+
+
+
+
+
+
+
 
 # 🚇 서울시 지하철 대중교통 데이터 레이크 수집 정의서
 
